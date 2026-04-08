@@ -1,0 +1,15 @@
+* { box-sizing: border-box; }
+body { margin: 0; font-family: Arial, Helvetica, sans-serif; background: #f8fafc; color: #0f172a; }
+.app { width: 560px; padding: 14px; }
+h1 { margin: 0 0 12px; font-size: 18px; }
+.toggle { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; font-weight: 700; }
+.toggle input { margin-top: 2px; }
+.hint { margin: 8px 0 0; color: #475569; font-size: 12px; line-height: 1.5; }
+.status { margin-top: 10px; font-size: 12px; color: #2563eb; min-height: 16px; }
+hr { border: 0; border-top: 1px solid #e2e8f0; margin: 14px 0; }
+label { display: block; margin: 10px 0 6px; font-size: 13px; font-weight: 700; }
+textarea { width: 100%; min-height: 130px; resize: vertical; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px 12px; font-size: 16px; line-height: 1.45; background: white; }
+#outputText { color: #0b47ff; }
+.actions { display: flex; gap: 8px; margin: 10px 0; }
+button { border: 0; border-radius: 8px; padding: 10px 14px; font-size: 14px; font-weight: 700; cursor: pointer; background: #2563eb; color: white; }
+button.secondary { background: #475569; }

@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mini UniKey Hybrid</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <div class="app">
+    <h1>Mini UniKey</h1>
+    <label class="toggle">
+      <input type="checkbox" id="enabledToggle" />
+      <span>Bật chuyển Telex trực tiếp trên trang web</span>
+    </label>
+    <p class="hint">
+      Trên web, extension dùng raw-word buffer để bám theo chuỗi phím bạn vừa gõ. Nhờ đó các case như hoàn tác dấu bằng cách gõ lại phím dấu sẽ khớp với popup hơn.
+    </p>
+    <div id="status" class="status"></div>
+    <hr />
+    <label for="inputText">Cửa sổ convert Telex</label>
+    <textarea id="inputText" placeholder="Nhập Telex tại đây..."></textarea>
+    <div class="actions">
+      <button id="copyBtn">Copy Output</button>
+      <button id="clearBtn" class="secondary">Clear</button>
+    </div>
+    <label for="outputText">Output tiếng Việt</label>
+    <textarea id="outputText" readonly placeholder="Kết quả sẽ hiển thị ở đây..."></textarea>
+  </div>
+  <script src="engine.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
