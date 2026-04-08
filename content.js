@@ -203,11 +203,35 @@
   }
 
   function getTextNodeAndOffset(container, offset) {
-    if (container.nodeType === Node.TEXT_NODE) return { node: container, offset };
-    const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null);
-    const current = walker.nextNode();
-    if (!current) return null;
-    return { node: current, offset: Math.min(offset, current.nodeValue.length) };
+    if (container.nodeType === Node.TEXT_NODE) {
+      return { node: container, offset: Math.min(offset, container.nodeValue.length) };
+    }
+
+    const childNodes = container.childNodes || [];
+    const previousChild = offset > 0 ? childNodes[offset - 1] : null;
+    const nextChild = offset < childNodes.length ? childNodes[offset] : null;
+    const previousText = previousChild ? getEdgeTextNode(previousChild, "last") : null;
+    if (previousText) return { node: previousText, offset: previousText.nodeValue.length };
+
+    const nextText = nextChild ? getEdgeTextNode(nextChild, "first") : null;
+    if (nextText) return { node: nextText, offset: 0 };
+
+    const currentText = getEdgeTextNode(container, "first");
+    if (!currentText) return null;
+    return { node: currentText, offset: Math.min(offset, currentText.nodeValue.length) };
+  }
+
+  function getEdgeTextNode(node, edge) {
+    if (!node) return null;
+    if (node.nodeType === Node.TEXT_NODE) return node;
+
+    const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT, null);
+    let current = walker.nextNode();
+    if (edge === "first") return current;
+
+    let last = current;
+    while ((current = walker.nextNode())) last = current;
+    return last;
   }
 
   function replaceRangeInTextNode(node, start, end, replacement, caretOffset, selection) {
@@ -331,77 +355,34 @@
     return false;
   }
 
-  function getCaretOffsetInElement(element) {
-    const sel = window.getSelection();
-    if (!sel || sel.rangeCount === 0) return 0;
-    const range = sel.getRangeAt(0);
-    const pre = range.cloneRange();
-    pre.selectNodeContents(element);
-    pre.setEnd(range.endContainer, range.endOffset);
-    return pre.toString().length;
-  }
-
-  function getTextNodesUnder(node) {
-    const textNodes = [];
-    const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT, null);
-    let current;
-    while ((current = walker.nextNode())) textNodes.push(current);
-    return textNodes;
-  }
-
-  function setCaretOffsetInElement(element, offset) {
-    const sel = window.getSelection();
-    if (!sel) return;
-    const range = document.createRange();
-    range.selectNodeContents(element);
-    range.collapse(true);
-    let current = 0;
-    const textNodes = getTextNodesUnder(element);
-    for (const node of textNodes) {
-      const next = current + node.nodeValue.length;
-      if (offset <= next) {
-        range.setStart(node, Math.max(0, offset - current));
-        range.collapse(true);
-        sel.removeAllRanges();
-        sel.addRange(range);
-        return;
-      }
-      current = next;
-    }
-    sel.removeAllRanges();
-    sel.addRange(range);
-  }
-
-  function writePlainTextPreserveBreaks(el, text) {
-    const lines = text.split(/\n/);
-    el.innerHTML = "";
-    lines.forEach((line, idx) => {
-      if (idx > 0) el.appendChild(document.createElement("br"));
-      el.appendChild(document.createTextNode(line));
-    });
-  }
-
   function processRichEditable(el) {
     if (processWithRawBufferRich(el)) return;
+    if (processSingleTextNodeRich(el)) return;
+  }
 
-    const text = el.innerText ?? el.textContent ?? "";
-    const caret = getCaretOffsetInElement(el);
-    const bounds = getWordBounds(text, caret);
+  function processSingleTextNodeRich(el) {
+    const info = getSelectionInfo(el);
+    if (!info) return false;
+    const target = getTextNodeAndOffset(info.container, info.offset);
+    if (!target || !target.node) return false;
+
+    const text = target.node.nodeValue || "";
+    const bounds = getWordBounds(text, target.offset);
     const word = text.slice(bounds.start, bounds.end);
-    if (!word || !/\p{L}/u.test(word)) return;
+    if (!word || !/\p{L}/u.test(word)) return false;
 
     const convertedWord = window.MiniUniKeyEngine.processWord(word);
-    if (convertedWord === word) return;
+    if (convertedWord === word) return false;
 
-    const beforeCaretWordPart = text.slice(bounds.start, caret);
+    const beforeCaretWordPart = text.slice(bounds.start, target.offset);
     const newCaret = bounds.start + window.MiniUniKeyEngine.processWord(beforeCaretWordPart).length;
-    const newText = text.slice(0, bounds.start) + convertedWord + text.slice(bounds.end);
 
     isApplying = true;
-    writePlainTextPreserveBreaks(el, newText);
-    setCaretOffsetInElement(el, newCaret);
+    replaceRangeInTextNode(target.node, bounds.start, bounds.end, convertedWord, newCaret, info.selection);
     dispatchInputEvent(el);
     isApplying = false;
+    stateMap.set(el, { kind: "textnode", node: target.node, start: bounds.start, raw: word, transformed: convertedWord });
+    return true;
   }
 
   function processElement(el) {
